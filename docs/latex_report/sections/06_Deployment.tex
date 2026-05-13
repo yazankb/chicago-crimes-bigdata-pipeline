@@ -1,0 +1,122 @@
+\section{Deployment}
+\label{sec:deployment}
+
+\subsection{Data Infrastructure}
+
+Hive tables for ML results were created by the Stage III pipeline and consumed by Stage IV for Superset visualization:
+
+\begin{table}[H]
+\centering
+\caption{Hive ML Tables}
+\label{tab:ml-tables}
+\begin{tabular}{lll}
+\toprule
+\textbf{Table} & \textbf{Type} & \textbf{Source} \\
+\midrule
+\texttt{ml\_evaluation} & External (CSV) & \texttt{project/output/evaluation} \\
+\texttt{ml\_predictions\_rf} & External (CSV) & \texttt{project/output/model1\_predictions} \\
+\texttt{ml\_predictions\_gbt} & External (CSV) & \texttt{project/output/model2\_predictions} \\
+\texttt{ml\_features} & Managed & Static INSERT (feature groups) \\
+\texttt{ml\_gridsearch} & Managed & Static INSERT (grid search params) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Additional PostgreSQL tables for data description and schema information were loaded via \texttt{scripts/load\_postgres.py}.
+
+\subsection{Superset Dashboard}
+
+An Apache Superset dashboard titled \textbf{"Chicago Crimes Analysis"} was deployed on the cluster at \url{http://hadoop-03.uni.innopolis.ru:8808}. The dashboard is organized into three tabs.
+
+\subsubsection{Tab 1: Data Description}
+
+Provides an overview of the dataset, schema, and data quality:
+
+\begin{itemize}
+    \item Dataset Overview table — record counts for all project tables
+    \item Column Schema table — 22 columns with data types
+    \item Data Sample table — raw crime records preview
+    \item Arrest Class Balance pie chart (25.09\% TRUE, 74.91\% FALSE)
+    \item Year Range summary (2001--2026)
+    \item Data Cleaning text component
+\end{itemize}
+
+\subsubsection{Tab 2: EDA Insights}
+
+Presents the seven EDA charts from Stage II with textual conclusions:
+
+\begin{enumerate}
+    \item \textbf{Arrest Rate by District}: Ranges from 18.19\% (District 16) to 40.89\% (District 11) — a 2.25$\times$ difference suggesting resource allocation practices vary substantially.
+    \item \textbf{Top 15 Crime Types}: THEFT (1.82M) and BATTERY (1.56M) dominate, accounting for $\sim$39\% of all incidents.
+    \item \textbf{Crimes by Hour}: Diurnal pattern with peaks at 12:00 (490K) and midnight (499K); lowest at 5 AM (120K).
+    \item \textbf{Arrest Rate Trend}: Declining from 29.21\% (2001) to $\sim$12--16\% (2020s), with a sharp drop between 2015 (26.46\%) and 2016 (19.66\%).
+    \item \textbf{Crimes by Month}: Relatively stable year-round ($\sim$10\% variation); February lowest, May/December highest.
+    \item \textbf{Arrest by Community Area}: Wide variation from $\sim$10\% to 36.68\% (Area 23).
+    \item \textbf{Domestic vs Non-Domestic}: Non-domestic (26.32\%) has higher arrest rate than domestic (19.22\%).
+\end{enumerate}
+
+\subsubsection{Tab 3: ML Modeling}
+
+Presents the machine learning results:
+
+\begin{itemize}
+    \item Feature Pipeline table — 4 feature groups (categorical, numerical, cyclical, geospatial)
+    \item Grid Search Parameters table — RF and GBT hyperparameter grids
+    \item Model Comparison bar chart — AUC-ROC, AUC-PR, Accuracy, F1 side-by-side
+    \item Confusion Matrices — RF and GBT prediction distributions
+    \item Best model annotation: GBT (AUC-PR=0.8176, F1=0.8710)
+\end{itemize}
+
+\subsection{Data Sources in Superset}
+
+\begin{table}[H]
+\centering
+\caption{Superset Data Source Configuration}
+\label{tab:superset-sources}
+\begin{tabularx}{\textwidth}{llX}
+\toprule
+\textbf{Connection} & \textbf{URI} & \textbf{Tables Used} \\
+\midrule
+PostgreSQL & \texttt{postgresql://team2:...@hadoop-04:5432/team2\_projectdb} & \texttt{crimes}, \texttt{dataset\_info}, \texttt{schema\_info}, \texttt{ml\_evaluation}, \texttt{ml\_features}, \texttt{ml\_gridsearch}, \texttt{q1\_results}--\texttt{q7\_results} \\
+Hive & \texttt{hive://hadoop-03.uni.innopolis.ru:10001/team2\_projectdb} & \texttt{ml\_evaluation}, \texttt{ml\_predictions\_rf}, \texttt{ml\_predictions\_gbt}, \texttt{ml\_features}, \texttt{ml\_gridsearch} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Dashboard Publishing}
+
+The dashboard was published via the Superset UI (Dashboard > $\vdots$ > Publish), making it visible to all authenticated users. The full dashboard export is available in \texttt{output/dashboard\_stage4.jpg} (Figure~\ref{fig:dashboard}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{output/dashboard_stage4.jpg}
+    \caption{Stage IV Superset Dashboard}
+    \label{fig:dashboard}
+\end{figure}
+
+\subsection{Reproducibility}
+
+All scripts are idempotent and can be rerun safely on the IU Hadoop cluster. The project is organized as follows:
+
+\begin{table}[H]
+\centering
+\caption{Repository Scripts}
+\label{tab:scripts}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Script} & \textbf{Purpose} \\
+\midrule
+\texttt{main.sh} & Orchestrates all 4 stages sequentially \\
+\texttt{scripts/data\_collection.sh} & Downloads dataset from Socrata API with MD5 checksums \\
+\texttt{scripts/build\_db.py} & Creates PostgreSQL database and bulk-loads data \\
+\texttt{scripts/sqoop\_import.sh} & Sqoop import with 3-format benchmark \\
+\texttt{sql/hive\_create.sql} & Hive DDL for external and managed tables \\
+\texttt{scripts/eda\_pyspark.py} & 7 EDA queries exporting to CSVs and PostgreSQL \\
+\texttt{scripts/ml\_pipeline.py} & Full ML pipeline with custom transformers and tuning \\
+\texttt{scripts/stage3.sh} & Stage III orchestrator (spark-submit on YARN) \\
+\texttt{scripts/stage4.sh} & Stage IV orchestrator (PostgreSQL loading) \\
+\texttt{scripts/load\_postgres.py} & Python psycopg2 loader for PostgreSQL tables \\
+\texttt{scripts/verify.sh} & Data integrity verification \\
+\bottomrule
+\end{tabularx}
+\end{table}

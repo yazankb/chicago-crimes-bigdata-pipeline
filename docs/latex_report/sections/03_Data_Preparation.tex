@@ -1,0 +1,179 @@
+\section{Data Preparation}
+\label{sec:data-prep}
+
+\subsection{Pipeline Architecture}
+
+The data pipeline moves data from the source through staging, ingestion, and storage, ultimately reaching the data warehouse for analytics. The architecture is illustrated below:
+
+\begin{verbatim}
+Socrata API / CSV
+    |
+    v
+PostgreSQL (Staging)
+    |  * Schema validation
+    |  * Bulk COPY FROM STDIN
+    |  * Indexes on key columns
+    |
+    v
+Sqoop (4 mappers, split-by id)
+    |  * Parquet + Snappy (recommended)
+    |
+    v
+HDFS (/user/team2/project/warehouse/)
+    |
+    v
+Hive (team2_projectdb)
+    |  * External table: crimes (Parquet on Sqoop output)
+    |  * Managed table: crimes_optimized (partitioned + bucketed)
+    |
+    v
+PySpark ML Pipeline (Stage III)
+\end{verbatim}
+
+\subsection{Data Ingestion}
+
+\subsubsection{Data Collection}
+
+The full dataset was downloaded from the Socrata SODA API using paginated requests of 500,000 rows per batch to prevent timeouts:
+
+\begin{lstlisting}[language=bash, caption={Data collection script}]
+bash scripts/data_collection.sh
+\end{lstlisting}
+
+Output: \texttt{data/chicago\_crimes\_raw.csv} ($\sim$1.9 GB) with MD5 checksum verification.
+
+\subsubsection{PostgreSQL Staging}
+
+The raw CSV was loaded into a PostgreSQL 14 database using \texttt{copy\_expert} for bulk ingestion. The \texttt{build\_db.py} script creates the \texttt{crimes} table with 22 columns, applies indexes on key columns (\texttt{arrest}, \texttt{year}, \texttt{primary\_type}, \texttt{date}, \texttt{district}, \texttt{community\_area}), and verifies row counts.
+
+\subsubsection{Sqoop Import to HDFS}
+
+Apache Sqoop was used to transfer data from PostgreSQL to HDFS with 4 mappers, split by the \texttt{id} column. Three format/codec combinations were benchmarked (Table~\ref{tab:sqoop-benchmark}).
+
+\begin{table}[H]
+\centering
+\caption{Sqoop Format Benchmark}
+\label{tab:sqoop-benchmark}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Format} & \textbf{Codec} & \textbf{HDFS Size} & \textbf{Import Time} \\
+\midrule
+Parquet & Snappy & \textbf{509 MB} & \textbf{54s} \\
+AVRO & Snappy & 845 MB & 84s \\
+Parquet & Gzip & 360 MB & 93s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Recommendation}: Parquet + Snappy was selected for its optimal balance of storage efficiency and import speed.
+
+\subsection{Hive Optimization}
+
+\subsubsection{Partitioned and Bucketed Table}
+
+A managed table \texttt{crimes\_optimized} was created with the following optimisations:
+
+\begin{itemize}
+    \item \textbf{Partitioning}: By \texttt{year} (26 partitions: 2001--2026) — enables time-range pruning for queries.
+    \item \textbf{Bucketing}: By \texttt{district} into 22 buckets — enables efficient join and group-by operations.
+    \item \textbf{Storage}: Parquet + Snappy compression.
+    \item \textbf{Files}: 370 total across all partitions.
+\end{itemize}
+
+The Hive DDL was executed as:
+
+\begin{lstlisting}[language=SQL, caption={Hive table creation}]
+CREATE TABLE team2_projectdb.crimes_optimized (
+    id BIGINT, case_number STRING, date BIGINT,
+    block STRING, iucr STRING, primary_type STRING,
+    description STRING, location_description STRING,
+    arrest BOOLEAN, domestic BOOLEAN, beat STRING,
+    district INT, ward INT, community_area INT,
+    fbi_code STRING, x_coordinate INT, y_coordinate INT,
+    updated_on BIGINT, latitude DOUBLE, longitude DOUBLE,
+    location STRING
+)
+PARTITIONED BY (year INT)
+CLUSTERED BY (district) INTO 22 BUCKETS
+STORED AS PARQUET
+LOCATION '/user/team2/project/hive/warehouse/crimes_optimized';
+\end{lstlisting}
+
+\subsection{Data Cleaning}
+
+\begin{table}[H]
+\centering
+\caption{Data Cleaning Operations}
+\label{tab:cleaning}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Issue} & \textbf{Handling} \\
+\midrule
+Date stored as epoch milliseconds & Converted to seconds; decomposed into hour, day\_of\_week, month via \texttt{from\_unixtime()} \\
+Null categoricals & Filled with \texttt{"Unknown"} \\
+Null district (47 rows) & Filled with -1 \\
+Null community\_area (613,725 rows) & Filled with -1 \\
+Missing coordinates (96,553 rows) & Excluded from ML training \\
+Domestic flag & Encoded to numeric 1.0 / 0.0 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Feature Engineering}
+
+\subsubsection{Cyclical Time Encoding (SinCosTransformer)}
+
+A custom PySpark ML transformer was implemented to encode cyclical temporal features into two continuous components, preserving circular relationships:
+
+\begin{equation}
+\text{sin\_component} = \sin\left(\frac{2\pi \times \text{value}}{\text{period}}\right),\quad
+\text{cos\_component} = \cos\left(\frac{2\pi \times \text{value}}{\text{period}}\right)
+\end{equation}
+
+\begin{table}[H]
+\centering
+\caption{Cyclical Feature Encoding}
+\label{tab:cyclical}
+\begin{tabular}{lll}
+\toprule
+\textbf{Feature} & \textbf{Period} & \textbf{Output Columns} \\
+\midrule
+\texttt{hour\_of\_day} & 24 & \texttt{hour\_sin}, \texttt{hour\_cos} \\
+\texttt{day\_of\_week} & 7 & \texttt{day\_sin}, \texttt{day\_cos} \\
+\texttt{month} & 12 & \texttt{month\_sin}, \texttt{month\_cos} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Geospatial Encoding (GeoToECEFTransformer)}
+
+A second custom transformer converts geodetic coordinates (latitude, longitude) to Earth-Centered Earth-Fixed (ECEF) coordinates using the WGS84 ellipsoid:
+
+\begin{itemize}
+    \item Semi-major axis ($a$): 6,378,137 m
+    \item First eccentricity squared ($e^2$): $6.69437999014 \times 10^{-3}$
+    \item Altitude: 0 (mean sea level)
+\end{itemize}
+
+Output: \texttt{ecef\_x}, \texttt{ecef\_y}, \texttt{ecef\_z} (in metres).
+
+\subsubsection{Pipeline Stages}
+
+The complete feature engineering pipeline consists of:
+
+\begin{enumerate}
+    \item SinCosTransformer $\times$ 3 (hour, day\_of\_week, month)
+    \item GeoToECEFTransformer (lat, lon $\rightarrow$ ecef\_x, ecef\_y, ecef\_z)
+    \item StringIndexer $\times$ 4 (primary\_type, iucr, location\_description, beat) with \texttt{handleInvalid="keep"}
+    \item OneHotEncoder $\times$ 4
+    \item VectorAssembler (all features $\rightarrow$ raw\_features vector)
+    \item VarianceThresholdSelector (removes zero-variance features)
+\end{enumerate}
+
+The final feature vector includes:
+\begin{itemize}
+    \item OHE-encoded categoricals (4 groups)
+    \item Numerical: district, community\_area, x\_coordinate, y\_coordinate, domestic
+    \item Cyclical sin/cos: 6 columns
+    \item ECEF geospatial: 3 columns
+\end{itemize}

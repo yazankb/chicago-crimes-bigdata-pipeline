@@ -1,0 +1,70 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Urban crime remains one of the most pressing challenges for metropolitan law enforcement agencies. With millions of residents and thousands of daily incidents, police departments struggle to allocate limited patrol and investigative resources effectively. The Chicago Police Department, like many large urban forces, collects detailed records of reported crime incidents, yet this data remains underutilised for predictive decision-making.
+
+This project addresses the business need for a data-driven tool that can predict arrest likelihood from crime incident attributes. By building an end-to-end big data pipeline, we demonstrate how raw open data can be ingested, stored, processed, analysed, and presented to support operational decisions.
+
+\subsection{Project Objectives}
+
+The primary objectives of this project are:
+
+\begin{enumerate}
+    \item Design and implement a scalable big data architecture for crime data storage and processing using the IU Hadoop cluster.
+    \item Build a reproducible data pipeline that automates ingestion from source to warehouse.
+    \item Conduct exploratory data analysis (EDA) to uncover crime patterns across temporal, geospatial, and categorical dimensions.
+    \item Develop and tune machine learning models to predict arrest likelihood.
+    \item Present results through an interactive dashboard for stakeholders.
+\end{enumerate}
+
+\subsection{CRISP-DM Methodology}
+
+The project follows the Cross-Industry Standard Process for Data Mining (CRISP-DM), which consists of six phases:
+
+\begin{enumerate}
+    \item \textbf{Business Understanding} — Define business objectives and success criteria.
+    \item \textbf{Data Understanding} — Collect initial data, describe, explore, and verify quality.
+    \item \textbf{Data Preparation} — Construct final dataset from raw data through cleaning and feature engineering.
+    \item \textbf{Modeling} — Select and apply modelling techniques, calibrate parameters.
+    \item \textbf{Evaluation} — Assess model performance against business objectives.
+    \item \textbf{Deployment} — Deliver results and plan monitoring and maintenance.
+\end{enumerate}
+
+Each phase maps to a project stage, as summarised in Table~\ref{tab:crispdm-mapping}.
+
+\begin{table}[H]
+\centering
+\caption{CRISP-DM to Project Stage Mapping}
+\label{tab:crispdm-mapping}
+\begin{tabular}{lll}
+\toprule
+\textbf{CRISP-DM Phase} & \textbf{Stage} & \textbf{Description} \\
+\midrule
+Business Understanding & Stage I & Define problem and objectives \\
+Data Understanding & Stage I & Explore dataset and assess quality \\
+Data Preparation & Stages I--II & Ingest, clean, transform, engineer features \\
+Modeling & Stage III & Train and tune ML models \\
+Evaluation & Stage III & Compare models, link to business goals \\
+Deployment & Stage IV & Dashboard delivery and risk assessment \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Tools and Technologies}
+
+The project leverages the following technologies deployed on the IU Hadoop cluster:
+
+\begin{itemize}
+    \item \textbf{Data Source}: Socrata SODA API (Chicago Data Portal)
+    \item \textbf{Staging Database}: PostgreSQL 14
+    \item \textbf{Data Ingestion}: Apache Sqoop
+    \item \textbf{Distributed Storage}: HDFS with Apache Parquet + Snappy compression
+    \item \textbf{Data Warehouse}: Apache Hive (partitioned and bucketed tables)
+    \item \textbf{Compute Engine}: Apache Spark 3 on YARN
+    \item \textbf{Visualization}: Apache Superset
+    \item \textbf{Programming}: Python 3.6 with PySpark
+\end{itemize}
+
+\subsection{Report Structure}
+
+This report follows the CRISP-DM structure. Section~\ref{sec:business} covers Business Understanding. Section~\ref{sec:data-understanding} covers Data Understanding. Section~\ref{sec:data-prep} covers Data Preparation. Section~\ref{sec:modeling} covers Modeling. Section~\ref{sec:evaluation} covers Evaluation. Section~\ref{sec:deployment} covers Deployment. Section~\ref{sec:contributions} presents team contributions and reflections.

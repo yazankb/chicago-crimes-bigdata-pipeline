@@ -1,0 +1,67 @@
+\section{Contributions, Challenges, and Future Work}
+\label{sec:contributions}
+
+\subsection{Team Contributions}
+
+\begin{table}[H]
+\centering
+\caption{Team Member Contributions}
+\label{tab:contributions}
+\begin{tabularx}{\textwidth}{cXX}
+\toprule
+\textbf{Student} & \textbf{Contribution (\%)} & \textbf{Performed Tasks} \\
+\midrule
+Yazan Kbaili & 50\% & Data collection \& ingestion (Stage I), Hive optimizations (Stage II), ML pipeline development \& hyperparameter tuning (Stage III), Superset dashboard deployment (Stage IV), report writing \\
+Ali Salloum & 50\% & PostgreSQL schema design (Stage I), EDA analysis (Stage II), model evaluation \& risk assessment (Stage III), Superset chart creation \& dashboard organization (Stage IV), presentation \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Technical Challenges}
+
+\begin{table}[H]
+\centering
+\caption{Challenges Encountered and Resolutions}
+\label{tab:challenges}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Challenge} & \textbf{Resolution} \\
+\midrule
+Sqoop stores timestamps as epoch milliseconds & Divided by 1000 before \texttt{from\_unixtime()} in Hive/Spark \\
+Large CSV (1.9 GB) download timeouts & Implemented paginated API download in 500K-row batches \\
+PostgreSQL \texttt{psql} not available on cluster & Used Python \texttt{psycopg2} for all database operations \\
+Spark 3 memory limits on YARN & Sampled 1M records instead of full 8.5M for ML training \\
+Superset Hive connection latency & Used PostgreSQL as primary data source for dashboard \\
+Missing community\_area (7.2\% nulls) & Imputed with -1 to preserve records for training \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Domain Challenges}
+
+\begin{itemize}
+    \item \textbf{Class imbalance (25\% arrest rate)}: Required AUC-PR as the optimization metric; logistic regression performed poorly (AUC-PR = 0.38).
+    \item \textbf{Temporal drift over 26 years}: The arrest rate declined from 29\% to 12--16\%, meaning the model must be periodically retrained.
+    \item \textbf{Missing geospatial data (1.1\%)}: Records without coordinates were excluded from ML but retained for temporal analysis.
+\end{itemize}
+
+\subsection{Lessons Learned}
+
+\begin{enumerate}
+    \item \textbf{Format matters}: Parquet + Snappy provides the best balance of compression and query speed for large datasets.
+    \item \textbf{Custom transformers enable domain-specific features}: SinCos and ECEF encoding improved model performance compared to raw temporal/geospatial inputs.
+    \item \textbf{AUC-PR is essential for imbalanced data}: Accuracy and AUC-ROC overstate performance on datasets with skewed class distributions.
+    \item \textbf{Idempotent scripts save debugging time}: All scripts check for existing objects before creation, enabling safe re-execution.
+\end{enumerate}
+
+\subsection{Future Work}
+
+\begin{enumerate}
+    \item \textbf{Real-time deployment}: Integrate the GBT model into a REST API for real-time patrol dispatch recommendations.
+    \item \textbf{Deep learning}: Experiment with Spark's \texttt{MultilayerPerceptronClassifier} for comparison against tree-based methods.
+    \item \textbf{Geospatial clustering}: Use DBSCAN on ECEF coordinates to identify crime hot-spots beyond district boundaries.
+    \item \textbf{Temporal forecasting}: Add time-series models (ARIMA, Prophet) to predict crime volume shifts.
+    \item \textbf{Model explainability}: Integrate SHAP for per-prediction interpretation, parallelized via Spark UDFs.
+    \item \textbf{Automated retraining}: Implement a CI/CD pipeline with monthly retraining and model redeployment.
+    \item \textbf{Cold-start enhancement}: Develop a fallback model for new crime types using similarity-based feature embeddings.
+\end{enumerate}

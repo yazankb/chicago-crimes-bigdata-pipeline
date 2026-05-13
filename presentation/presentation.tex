@@ -1,0 +1,459 @@
+% ============================================================
+% Chicago Crimes Analysis Pipeline - Beamer Presentation
+% Team 2: Yazan Kbaili, Ali Salloum
+% Big Data - IU
+% May 2026
+% ============================================================
+\documentclass[10pt]{beamer}
+
+% ---- Theme ----
+\usetheme{Madrid}
+\usecolortheme{beaver}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+% ---- Packages ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{hyperref}
+
+% ---- Title Page ----
+\title[Chicago Crimes Pipeline]{Chicago Crimes Analysis Pipeline}
+\subtitle{End-to-End Big Data Analytics for Public Safety}
+\author[Team 2]{Yazan Kbaili \and Ali Salloum}
+\institute[IU]{Innopolis University -- Big Data Course}
+\date{May 2026}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+% ---- Slide 1: Title ----
+\begin{frame}
+\titlepage
+\end{frame}
+
+% ---- Slide 2: Agenda ----
+\begin{frame}{Agenda}
+\tableofcontents
+\end{frame}
+
+% ============================================================
+\section{Business Problem \& Objectives}
+% ============================================================
+
+% ---- Slide 3: Business Problem ----
+\begin{frame}{Business Problem}
+\begin{columns}
+\column{0.55\textwidth}
+\textbf{Problem:}
+\begin{itemize}
+    \item Chicago PD needs data-driven patrol resource allocation
+    \item 8.5M+ crime records over 25 years -- manual analysis infeasible
+    \item Need to identify high-risk spatiotemporal patterns
+\end{itemize}
+\vspace{0.3cm}
+\textbf{Business Objective:}
+\begin{itemize}
+    \item Predict arrest likelihood from incident characteristics
+    \item Enable targeted patrol deployment
+\end{itemize}
+
+\column{0.45\textwidth}
+\begin{block}{Key Metric}
+\textbf{Business-AI Link:}
+Higher AUC-PR $\rightarrow$ Better arrest prediction $\rightarrow$ Smarter resource allocation $\rightarrow$ Improved clearance rates
+\end{block}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Dataset Overview}
+% ============================================================
+
+% ---- Slide 4: Dataset ----
+\begin{frame}{Dataset -- Chicago Crimes (2001--2026)}
+\begin{table}
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Attribute} & \textbf{Value} \\
+\midrule
+Source & Chicago Data Portal \\
+Records & 8,549,662 \\
+Columns & 22 \\
+File Size & 1.9 GB (CSV) \\
+Target Variable & \texttt{Arrest} (binary) \\
+Arrest Rate (TRUE) & 25.09\% \\
+Arrest Rate (FALSE) & 74.91\% \\
+Time Span & 2001 -- 2026 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{alertblock}{Challenge}
+Class imbalance: only 25\% positive class -- requires careful metric selection
+\end{alertblock}
+\end{frame}
+
+% ============================================================
+\section{Pipeline Architecture}
+% ============================================================
+
+% ---- Slide 5: Architecture ----
+\begin{frame}{Pipeline Architecture}
+\begin{block}{Data Flow}
+Socrata API $\rightarrow$ PostgreSQL $\rightarrow$ Sqoop (Parquet+Snappy) $\rightarrow$ HDFS $\rightarrow$ Hive $\rightarrow$ PySpark ML $\rightarrow$ Superset
+\end{block}
+
+\vspace{0.3cm}
+
+\begin{table}
+\centering
+\begin{tabular}{cl}
+\toprule
+\textbf{Node} & \textbf{Services} \\
+\midrule
+hadoop-01 & Spark, Hive, Sqoop, JupyterHub \\
+hadoop-02 & HDFS NameNode, Hive Metastore \\
+hadoop-03 & HiveServer2, YARN RM, Superset \\
+hadoop-04 & PostgreSQL 14, HDFS DataNode \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{frame}
+
+% ============================================================
+\section{Stage I -- Data Collection \& Ingestion}
+% ============================================================
+
+% ---- Slide 6: Stage I ----
+\begin{frame}{Stage I: Data Collection \& Ingestion}
+\textbf{Process:}
+\begin{enumerate}
+    \item Download from Socrata API $\rightarrow$ 1.9 GB CSV
+    \item Load into PostgreSQL via \texttt{copy\_expert} -- 8,549,662 rows
+    \item Sqoop import to HDFS -- 3 format/codec benchmarks
+    \item Hive external table creation
+\end{enumerate}
+
+\vspace{0.3cm}
+\textbf{Sqoop Benchmark Results:}
+\begin{table}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Format} & \textbf{Size} & \textbf{Time} \\
+\midrule
+Parquet + Snappy & 509 MB & 54s $\bigstar$ \\
+AVRO + Snappy & 845 MB & 84s \\
+Parquet + Gzip & 360 MB & 93s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Winner:} Parquet + Snappy -- best balance of compression and speed
+\end{frame}
+
+% ============================================================
+\section{Stage II -- Hive Optimizations \& EDA}
+% ============================================================
+
+% ---- Slide 7: Hive Optimizations ----
+\begin{frame}{Stage II: Hive Optimizations}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Partitioning:}
+\begin{itemize}
+    \item Partition key: \texttt{year}
+    \item 26 partitions (2001--2026)
+    \item Enables time-range pruning
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Bucketing:}
+\begin{itemize}
+    \item Bucket key: \texttt{district}
+    \item 22 buckets
+    \item Enables efficient joins
+\end{itemize}
+\end{columns}
+
+\vspace{0.3cm}
+\begin{block}{Optimized Table}
+\begin{tabular}{lr}
+\textbf{Property} & \textbf{Value} \\
+Rows & 8,549,662 \\
+Partitions & 26 \\
+Buckets & 22 \\
+Files & 370 \\
+\end{tabular}
+\end{block}
+\end{frame}
+
+% ---- Slide 8: EDA Insights ----
+\begin{frame}{Stage II: EDA -- 7 Key Insights}
+\begin{table}
+\centering
+\begin{tabular}{cll}
+\toprule
+\textbf{\#} & \textbf{Insight} & \textbf{Key Finding} \\
+\midrule
+Q1 & Arrest rate by district & Dist. 11: 40.89\% vs Dist. 16: 18.19\% \\
+Q2 & Top 15 crime types & THEFT (1.82M), BATTERY (1.56M) \\
+Q3 & Crimes by hour & Peaks at 12:00 and 18:00 \\
+Q4 & Arrest rate trend & 29.21\% (2001) $\rightarrow$ 12--16\% (2020s) \\
+Q5 & Crimes by month & Seasonal summer peaks \\
+Q6 & Arrest by community area & Wide variation across 77 areas \\
+Q7 & Domestic vs non-domestic & Non-domestic (26.3\%) $>$ domestic (19.2\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{frame}
+
+% ============================================================
+\section{Stage III -- Predictive ML Pipeline}
+% ============================================================
+
+% ---- Slide 9: Feature Engineering ----
+\begin{frame}{Stage III: Feature Engineering}
+\textbf{Custom PySpark Transformers:}
+\begin{itemize}
+    \item \textbf{SinCosTransformer:} Cyclical encoding of time features
+    \begin{itemize}
+        \item hour\_of\_day $\rightarrow$ hour\_sin, hour\_cos (period=24)
+        \item day\_of\_week $\rightarrow$ day\_sin, day\_cos (period=7)
+        \item month $\rightarrow$ month\_sin, month\_cos (period=12)
+    \end{itemize}
+    \item \textbf{GeoToECEFTransformer:} Geospatial encoding
+    \begin{itemize}
+        \item lat/lon $\rightarrow$ ECEF x, y, z (WGS84 ellipsoid)
+    \end{itemize}
+\end{itemize}
+
+\textbf{Pipeline Stages:}
+\begin{enumerate}
+    \item SinCos $+$ ECEF transformers
+    \item StringIndexer + OneHotEncoder (4 categoricals)
+    \item VectorAssembler $\rightarrow$ VarianceThresholdSelector
+    \item Train/Test split: 80/20 (801k / 200k records)
+\end{enumerate}
+\end{frame}
+
+% ---- Slide 10: Models ----
+\begin{frame}{Stage III: Models \& Hyperparameter Tuning}
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{Random Forest}
+\begin{itemize}
+    \item Grid: \texttt{numTrees} [20, 50]
+    \item Grid: \texttt{maxDepth} [5, 10]
+    \item 3-fold CV
+    \item Metric: AUC-PR
+    \item Best: numTrees=50, maxDepth=10
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Gradient Boosted Trees}
+\begin{itemize}
+    \item Grid: \texttt{maxDepth} [3, 6]
+    \item Grid: \texttt{stepSize} [0.05, 0.1]
+    \item 3-fold CV
+    \item Metric: AUC-PR
+    \item Best: maxDepth=6, stepSize=0.1
+\end{itemize}
+\end{columns}
+
+\vspace{0.3cm}
+\begin{exampleblock}{Why AUC-PR?}
+Dataset is imbalanced (25\% arrest rate). AUC-PR focuses on positive class performance.
+\end{exampleblock}
+\end{frame}
+
+% ---- Slide 11: Results ----
+\begin{frame}{Stage III: Results \& Model Comparison}
+\begin{table}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{AUC-ROC} & \textbf{AUC-PR} & \textbf{Accuracy} & \textbf{F1} \\
+\midrule
+Logistic Regression (pilot) & 0.6529 & 0.3813 & 0.7491 & 0.6666 \\
+Random Forest (tuned) & 0.8738 & 0.7968 & 0.8492 & 0.8256 \\
+\textbf{GBT (tuned)} $\bigstar$ & \textbf{0.8844} & \textbf{0.8176} & \textbf{0.8809} & \textbf{0.8710} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{block}{Winner: Gradient Boosted Trees}
+\begin{itemize}
+    \item Highest AUC-PR (0.8176) -- critical for imbalanced data
+    \item Highest F1 (0.8710) -- best precision/recall balance
+    \item Optimal hyperparams: maxDepth=6, stepSize=0.1
+\end{itemize}
+\end{block}
+\end{frame}
+
+% ---- Slide 12: Pilot vs Final Comparison ----
+\begin{frame}{Stage II Pilot vs Stage III Final}
+\begin{table}
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metric} & \textbf{Stage II (10\%)} & \textbf{Stage III (1M)} & \textbf{Change} \\
+\midrule
+RF AUC-PR & 0.8352 & 0.7968 & $-0.0384$ \\
+GBT AUC-PR & 0.8418 & 0.8176 & $-0.0242$ \\
+RF F1 & 0.8742 & 0.8256 & $-0.0486$ \\
+GBT F1 & 0.8817 & 0.8710 & $-0.0107$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item Slight decrease expected: Stage III uses larger, more diverse sample
+    \item \textbf{Key insight:} GBT degrades less than RF -- more robust to data diversity
+\end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Risk Assessment}
+% ============================================================
+
+% ---- Slide 13: Risk Assessment ----
+\newcommand{\riskframe}{Risk Assessment \& Model Limitations}
+
+\begin{frame}{\riskframe}
+\textbf{Potential Risks:}
+\begin{enumerate}
+    \item \textbf{Temporal drift:} Crime patterns evolve; model trained on 2001--2026 may not generalize to future years
+    \item \textbf{Geographic bias:} Some districts have very few records -- predictions may be unreliable
+    \item \textbf{Class imbalance:} Model may over-predict ``no arrest'' (74.9\% majority class)
+\end{enumerate}
+
+\vspace{0.3cm}
+\textbf{Mitigation Strategies:}
+\begin{itemize}
+    \item Periodic retraining with new data
+    \item District-specific threshold tuning
+    \item AUC-PR optimization (already addresses class imbalance)
+    \item Monitor prediction distribution for drift detection
+\end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Challenges Faced}
+% ============================================================
+
+% ---- Slide 14: Challenges ----
+\begin{frame}{Challenges Faced}
+\begin{itemize}
+    \item \textbf{Cluster resource limits:} YARN queue contention with other teams
+    \item \textbf{Date format conversion:} Sqoop stores timestamps as BIGINT epoch -- required \texttt{from\_unixtime()} conversion
+    \item \textbf{Hive strict mode:} Dynamic partitioning required \texttt{nonstrict} mode configuration
+\end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Future Prospects}
+% ============================================================
+
+% ---- Slide 15: Future Work ----
+\begin{frame}{Future Prospects}
+\begin{itemize}
+    \item \textbf{Deep Learning:} Explore MultilayerPerceptronClassifier for non-linear patterns
+    \item \textbf{Real-time pipeline:} Stream crime data via Kafka + Spark Streaming
+    \item \textbf{Model interpretation:} SHAP/LIME for explaining individual predictions
+    \item \textbf{Geospatial clustering:} DBSCAN on crime hotspots for patrol zone optimization
+    \item \textbf{Feature expansion:} Weather data, census demographics, school calendar integration
+    \item \textbf{Active learning:} Reduce labeling cost for new crime types
+\end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Team Participation}
+% ============================================================
+
+% ---- Slide 16: Team Contribution ----
+\begin{frame}{Team Participation}
+\begin{table}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Member} & \textbf{Contribution} & \textbf{\%} \\
+\midrule
+\textbf{Yazan Kbaili} & 
+    \begin{tabular}[c]{l}
+        Hive optimizations (partitioning/bucketing) \\
+        7 EDA insights via PySpark \\
+        ML pipeline (RF + GBT with tuning) \\
+        Superset dashboard (Stage IV) \\
+        Presentations and reports
+    \end{tabular} & 50\% \\
+\midrule
+\textbf{Ali Salloum} &
+    \begin{tabular}[c]{l}
+        Data collection (Socrata API) \\
+        PostgreSQL schema and loading \\
+        Sqoop import and benchmarks \\
+        Hive external tables \\
+        Pipeline automation scripts
+    \end{tabular} & 50\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{frame}
+
+% ============================================================
+\section{Conclusion}
+% ============================================================
+
+% ---- Slide 17: Conclusion ----
+\begin{frame}{Conclusion}
+\begin{block}{Key Achievements}
+\begin{itemize}
+    \item Built end-to-end big data pipeline on 4-node Hadoop cluster
+    \item Processed 8.5M crime records across 25 years
+    \item Discovered 7 actionable EDA insights
+    \item Trained and compared 2 ML models with hyperparameter tuning
+    \item Published interactive Superset dashboard
+\end{itemize}
+\end{block}
+
+\vspace{0.3cm}
+\begin{exampleblock}{Best Model}
+\textbf{Gradient Boosted Trees} -- AUC-PR: 0.8176, F1: 0.8710
+\end{exampleblock}
+
+\vspace{0.3cm}
+\centering
+\textbf{\large Thank you! Questions?}
+
+\end{frame}
+
+% ============================================================
+\section{Dashboard Demonstration}
+% ============================================================
+
+% ---- Dashboard Handoff Slide (Finale) ----
+\begin{frame}{Superset Dashboard Demonstration}
+\centering
+\vspace{1.5cm}
+{\LARGE My colleague Ali will now present the live dashboard.}
+
+\vspace{1cm}
+\textbf{Three tabs:}
+\begin{itemize}
+    \item Data Description
+    \item EDA Insights (7 charts)
+    \item ML Modeling
+\end{itemize}
+\end{frame}
+
+% ============================================================
+\end{document}
+% ============================================================

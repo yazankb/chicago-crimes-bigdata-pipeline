@@ -1,0 +1,23 @@
+# Ignore data files and secrets
+data/*.csv
+data/*.md5
+secrets/*
+!secrets/.gitkeep
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Logs
+docs/*.log
+
+# Checkpoint files from notebooks
+notebooks/.ipynb_checkpoints/

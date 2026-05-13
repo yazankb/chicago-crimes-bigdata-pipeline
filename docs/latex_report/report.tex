@@ -1,0 +1,68 @@
+%% ---------------------------------------------
+%% Chicago Crimes Analysis Pipeline
+%% Big Data - IU Final Project Report
+%% Team 2: Yazan Kbaili, Ali Salloum
+%% ---------------------------------------------
+%%
+%% Based on template by Addi Ait-Mlouk
+%% School of informatics, University of Skövde
+%% ---------------------------------------------
+
+\documentclass[12pt]{article}
+% LaTeX packages and global styles
+\usepackage[dvipsnames]{xcolor}
+\input{base/packages}
+\input{base/style}
+\usepackage{multirow}
+\usepackage{xtab}
+\usepackage{booktabs}
+\usepackage{cleveref}
+
+% Custom commands
+\newcommand{\team}{\{Yazan Kbaili, Ali Salloum\}}
+
+% Beginning of the document
+\begin{document}
+    % Title page and unnumbered sections
+    \input{sections/00_front_page}
+    % \input{sections/00_abstract}
+
+    % Index of the document and figures
+    \begingroup
+        % Links are normally blue, but indexes are set to black
+        % so that everything does not appear blue
+        \hypersetup{linkcolor=black}
+        \tableofcontents
+    \endgroup
+
+    % Change page number style to normal
+    \clearpage\pagenumbering{arabic}
+
+    % Sections following CRISP-DM methodology
+    \input{sections/00_Introduction}
+    \newpage
+    \input{sections/01_Business_Understanding}
+    \newpage
+    \input{sections/02_Data_Understanding}
+    \newpage
+    \input{sections/03_Data_Preparation}
+    \newpage
+    \input{sections/04_Modeling}
+    \newpage
+    \input{sections/05_Evaluation}
+    \newpage
+    \input{sections/06_Deployment}
+    \newpage
+    \input{sections/07_Contributions_Reflections}
+
+    \newpage
+    \bibliographystyle{plainnat}
+    \nocite{*}
+    \bibliography{bibliography}
+
+    \newpage
+    \appendix
+    \input{sections/appendix}
+
+% End of the document
+\end{document}

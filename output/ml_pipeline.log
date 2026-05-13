@@ -1,0 +1,81 @@
+=============================================================
+  STAGE III: Predictive Data Analytics — ML Pipeline
+=============================================================
+
+[1/6] Running ML Pipeline on YARN (RF + GBT with grid search)...
+2026-05-13 15:36:52,750 INFO resource.ResourceUtils: ==============================================================
+2026-05-13 15:36:52,751 INFO resource.ResourceUtils: ==============================================================
+============================================================
+READING team2_projectdb.crimes_optimized
+============================================================
+=== FEATURE ENGINEERING ===
+=== BUILDING FEATURE PIPELINE ===
+=== SPLIT: 80% TRAIN / 20% TEST ===
+Train: 801102, Test: 199973
+============================================================
+MODEL 1: RANDOM FOREST — GRID SEARCH + 3-FOLD CV
+============================================================
+Best: numTrees=50, maxDepth=10
+Test: AUC-ROC=0.8738  AUC-PR=0.7968  Acc=0.8492  F1=0.8256
+============================================================
+MODEL 2: GRADIENT BOOSTED TREES — GRID SEARCH + 3-FOLD CV
+============================================================
+Best: maxDepth=6, stepSize=0.100
+Test: AUC-ROC=0.8844  AUC-PR=0.8176  Acc=0.8809  F1=0.8710
+============================================================
+MODEL COMPARISON
+============================================================
+*** Best: Gradient Boosted Trees (tuned) (AUC-PR=0.8176) ***
+============================================================
+STAGE III ML PIPELINE COMPLETE
+============================================================
+============================================================
+  Full log: output/ml_pipeline.log
+
+[2/6] Copying train/test data from HDFS...
+  Local: data/train.json, data/test.json
+
+[3/6] Copying models from HDFS...
+  Local: models/model1, models/model2
+
+[4/6] Copying predictions from HDFS...
+  Local: output/model1_predictions.csv, output/model2_predictions.csv
+
+[5/6] Copying evaluation from HDFS...
+  Local: output/evaluation.csv
+
+[6/6] Code quality check...
+************* Module ml_pipeline
+scripts/ml_pipeline.py:16:0: R0901: Too many ancestors (9/7) (too-many-ancestors)
+scripts/ml_pipeline.py:29:4: W0237: Parameter 'dataset' has been renamed to 'df' in overridden 'SinCosTransformer._transform' method (arguments-renamed)
+scripts/ml_pipeline.py:32:8: C0103: Variable name "pi" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:47:8: C0103: Attribute name "latCol" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:48:8: C0103: Attribute name "lonCol" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:49:8: C0103: Attribute name "outputPrefix" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:51:4: W0237: Parameter 'dataset' has been renamed to 'df' in overridden 'GeoToECEFTransformer._transform' method (arguments-renamed)
+scripts/ml_pipeline.py:54:8: C0103: Variable name "a" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:56:8: C0103: Variable name "n" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:58:8: C0103: Variable name "p" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:66:0: R0914: Too many local variables (61/15) (too-many-locals)
+scripts/ml_pipeline.py:84:4: C0103: Variable name "df" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:117:8: C0103: Variable name "c" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:121:8: C0103: Variable name "c" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:195:4: C0103: Variable name "rf" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:277:19: C0103: Variable name "pr" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:277:28: C0103: Variable name "f1" doesn't conform to snake_case naming style (invalid-name)
+scripts/ml_pipeline.py:66:0: R0915: Too many statements (119/50) (too-many-statements)
+
+-----------------------------------
+Your code has been rated at 8.90/10
+
+
+=============================================================
+  STAGE III COMPLETE
+=============================================================
+  Pipeline:  scripts/ml_pipeline.py (RF + GBT, grid search)
+  Models:    models/model1 (RF), models/model2 (GBT)
+  Preds:     output/model1_predictions.csv, output/model2_predictions.csv
+  Eval:      output/evaluation.csv
+  Train/Test: data/train.json, data/test.json
+  Next:      Update docs/ with final results
+=============================================================

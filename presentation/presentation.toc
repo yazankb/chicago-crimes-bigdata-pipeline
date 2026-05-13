@@ -1,0 +1,12 @@
+\beamer@sectionintoc {1}{Business Problem \& Objectives}{3}{0}{1}
+\beamer@sectionintoc {2}{Dataset Overview}{4}{0}{2}
+\beamer@sectionintoc {3}{Pipeline Architecture}{5}{0}{3}
+\beamer@sectionintoc {4}{Stage I -- Data Collection \& Ingestion}{6}{0}{4}
+\beamer@sectionintoc {5}{Stage II -- Hive Optimizations \& EDA}{7}{0}{5}
+\beamer@sectionintoc {6}{Stage III -- Predictive ML Pipeline}{9}{0}{6}
+\beamer@sectionintoc {7}{Risk Assessment}{13}{0}{7}
+\beamer@sectionintoc {8}{Challenges Faced}{14}{0}{8}
+\beamer@sectionintoc {9}{Future Prospects}{15}{0}{9}
+\beamer@sectionintoc {10}{Team Participation}{16}{0}{10}
+\beamer@sectionintoc {11}{Conclusion}{17}{0}{11}
+\beamer@sectionintoc {12}{Dashboard Demonstration}{18}{0}{12}

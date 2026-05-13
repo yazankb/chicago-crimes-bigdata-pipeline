@@ -1,0 +1,45 @@
+\section{Business Understanding}
+\label{sec:business}
+
+\subsection{Business Problem}
+
+City law enforcement agencies face the fundamental challenge of allocating limited patrol and investigative resources across a metropolitan area with millions of residents and thousands of daily incidents. Without reliable predictive tools, resource allocation remains reactive rather than proactive, leading to delayed response times, lower clearance rates, and eroding public trust.
+
+The core business need is to develop a binary classifier that uses available crime incident data to determine whether a reported crime will result in an arrest. This capability enables police departments to:
+
+\begin{itemize}
+    \item Prioritise high-arrest-probability incidents for rapid response.
+    \item Deploy patrol units to districts and time windows with the highest predicted clearance potential.
+    \item Implement evidence-based crime prevention strategies.
+    \item Optimise limited law enforcement budgets through data-driven allocation.
+\end{itemize}
+
+\subsection{Business Objectives}
+
+The primary business objective is to \textbf{increase the overall arrest clearance rate} by enabling smarter deployment of resources. The dependency between business objectives and model performance is captured by the following relationship:
+
+\begin{equation}
+\text{Business Value} = f(\text{Precision}, \text{Recall}, \text{Operational Cost})
+\label{eq:business-value}
+\end{equation}
+
+Higher precision means fewer false positives (fewer patrol resources wasted on low-value incidents), while higher recall means more true arrests are correctly identified. The optimal model balances these according to the department's operational constraints.
+
+\subsection{Success Criteria}
+
+\begin{itemize}
+    \item \textbf{Technical}: Achieve AUC-PR > 0.80 on holdout test data.
+    \item \textbf{Operational}: Provide a dashboard that enables stakeholders to explore crime patterns and model predictions interactively.
+    \item \textbf{Reproducibility}: Deliver a fully automated pipeline via a single \texttt{main.sh} script.
+\end{itemize}
+
+\subsection{Project Plan}
+
+The project was divided into four stages, each corresponding to phases of the CRISP-DM methodology:
+
+\begin{enumerate}
+    \item \textbf{Stage I}: Data collection and storage — Socrata API download, PostgreSQL staging, Sqoop import to HDFS (Parquet+Snappy), Hive table creation.
+    \item \textbf{Stage II}: Hive optimization and EDA — Partitioned and bucketed Hive tables, 7 exploratory queries, Superset dashboard.
+    \item \textbf{Stage III}: ML pipeline — Feature engineering with custom transformers, RF and GBT training with hyperparameter tuning on YARN.
+    \item \textbf{Stage IV}: Presentation and delivery — Full Superset dashboard with data description, EDA, and ML modeling tabs.
+\end{enumerate}

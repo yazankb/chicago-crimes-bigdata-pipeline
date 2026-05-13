@@ -1,0 +1,74 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{1}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Project Objectives}{1}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}CRISP-DM Methodology}{1}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Tools and Technologies}{2}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Report Structure}{3}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Business Understanding}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Business Problem}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Business Objectives}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Success Criteria}{4}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Project Plan}{5}{subsection.2.4}%
+\contentsline {section}{\numberline {3}Data Understanding}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Dataset Overview}{6}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Schema Description}{6}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Data Quality Assessment}{7}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Class Balance}{7}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}Missing Values}{8}{subsubsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.3}Geospatial Validation}{8}{subsubsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.4}Exploratory Data Analysis}{8}{subsection.3.4}%
+\contentsline {subsubsection}{\numberline {3.4.1}Key EDA Visualisations}{9}{subsubsection.3.4.1}%
+\contentsline {section}{\numberline {4}Data Preparation}{10}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Pipeline Architecture}{10}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Data Ingestion}{10}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Data Collection}{10}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}PostgreSQL Staging}{11}{subsubsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.3}Sqoop Import to HDFS}{11}{subsubsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.3}Hive Optimization}{11}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}Partitioned and Bucketed Table}{11}{subsubsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.4}Data Cleaning}{12}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Feature Engineering}{13}{subsection.4.5}%
+\contentsline {subsubsection}{\numberline {4.5.1}Cyclical Time Encoding (SinCosTransformer)}{13}{subsubsection.4.5.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}Geospatial Encoding (GeoToECEFTransformer)}{13}{subsubsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.5.3}Pipeline Stages}{13}{subsubsection.4.5.3}%
+\contentsline {section}{\numberline {5}Modeling}{15}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Approach}{15}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Pipeline Flow}{15}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Hyperparameter Tuning}{16}{subsection.5.3}%
+\contentsline {subsubsection}{\numberline {5.3.1}Random Forest}{16}{subsubsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.2}Gradient Boosted Trees}{16}{subsubsection.5.3.2}%
+\contentsline {subsection}{\numberline {5.4}Model Performance Comparison}{17}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Selected Model: Gradient Boosted Trees}{17}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Comparison with Stage II Pilot}{17}{subsection.5.6}%
+\contentsline {section}{\numberline {6}Evaluation}{18}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Business Objective Linkage}{18}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Model Interpretation}{18}{subsection.6.2}%
+\contentsline {subsubsection}{\numberline {6.2.1}Feature Importance}{18}{subsubsection.6.2.1}%
+\contentsline {subsubsection}{\numberline {6.2.2}Decision Tree Debug String}{18}{subsubsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.3}Risk Assessment}{19}{subsection.6.3}%
+\contentsline {subsubsection}{\numberline {6.3.1}Scenario: Temporal Drift}{19}{subsubsection.6.3.1}%
+\contentsline {subsubsection}{\numberline {6.3.2}Scenario: Cold Start (New Crime Types)}{19}{subsubsection.6.3.2}%
+\contentsline {subsubsection}{\numberline {6.3.3}Mitigation Strategies}{20}{subsubsection.6.3.3}%
+\contentsline {section}{\numberline {7}Deployment}{21}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Data Infrastructure}{21}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Superset Dashboard}{21}{subsection.7.2}%
+\contentsline {subsubsection}{\numberline {7.2.1}Tab 1: Data Description}{21}{subsubsection.7.2.1}%
+\contentsline {subsubsection}{\numberline {7.2.2}Tab 2: EDA Insights}{22}{subsubsection.7.2.2}%
+\contentsline {subsubsection}{\numberline {7.2.3}Tab 3: ML Modeling}{22}{subsubsection.7.2.3}%
+\contentsline {subsection}{\numberline {7.3}Data Sources in Superset}{23}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Dashboard Publishing}{23}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}Reproducibility}{24}{subsection.7.5}%
+\contentsline {section}{\numberline {8}Contributions, Challenges, and Future Work}{26}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Team Contributions}{26}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Technical Challenges}{27}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Domain Challenges}{27}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}Lessons Learned}{27}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}Future Work}{28}{subsection.8.5}%
+\contentsline {section}{\numberline {A}Appendix}{30}{appendix.A}%
+\contentsline {subsection}{\numberline {A.1}Repository Structure}{30}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}Cluster Access Information}{31}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}Sqoop Command}{31}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.4}Spark Submit Command}{32}{subsection.A.4}%
+\contentsline {subsection}{\numberline {A.5}Dashboard Screenshots}{33}{subsection.A.5}%
+\contentsline {subsubsection}{\numberline {A.5.1}Stage IV Superset Dashboard}{33}{subsubsection.A.5.1}%
+\contentsline {subsubsection}{\numberline {A.5.2}Stage II EDA Dashboard}{37}{subsubsection.A.5.2}%

@@ -1,0 +1,89 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+\subsection{Business Objective Linkage}
+
+The model's performance directly maps to the business objective of improving clearance rates:
+
+\begin{itemize}
+    \item \textbf{AUC-PR (0.8176)}: At the optimal threshold, the model correctly identifies 81.76\% more true arrests than random guessing, meaning patrol resources can be targeted to approximately 82\% of arrestable incidents.
+    \item \textbf{F1 (0.8710)}: The precision-recall balance ensures that resource allocation recommendations are both accurate and complete — for every 100 high-probability incidents flagged, approximately 87 will result in arrests, and approximately 87\% of those flagged will be actual arrests.
+\end{itemize}
+
+\subsection{Model Interpretation}
+
+\subsubsection{Feature Importance}
+
+GBT's \texttt{featureImportances} attribute reveals the relative contribution of each feature group to the model's decisions:
+
+\begin{enumerate}
+    \item \textbf{Primary crime type} (OHE-encoded): The strongest predictor — categories like NARCOTICS and INTERFERENCE WITH PUBLIC OFFICER have inherently higher arrest rates.
+    \item \textbf{District}: Police district is a significant predictor, consistent with the 2.25$\times$ variation observed in EDA.
+    \item \textbf{Hour of day} (cyclical encoding): Time-of-day patterns strongly influence arrest likelihood, with higher probabilities during peak patrol hours.
+    \item \textbf{Geospatial features} (ECEF coordinates): Location context matters beyond district boundaries — certain geographic areas show distinct arrest patterns.
+\end{enumerate}
+
+\subsubsection{Decision Tree Debug String}
+
+Spark's \texttt{model.toDebugString} method provides interpretable decision paths through the boosted trees, enabling operational rule extraction. Each tree in the ensemble can be inspected to understand the specific feature splits that lead to arrest predictions.
+
+\subsection{Risk Assessment}
+
+\subsubsection{Scenario: Temporal Drift}
+
+Crime patterns and policing policies evolve over time. To assess model robustness to distribution shifts, three synthetic scenarios were generated:
+
+\begin{table}[H]
+\centering
+\caption{Risk Assessment Scenarios}
+\label{tab:risk-scenarios}
+\begin{tabular}{lll}
+\toprule
+\textbf{Scenario} & \textbf{Description} & \textbf{Data Distribution} \\
+\midrule
+Optimistic & Arrest rate increases to 40\% & Adjusted class labels \\
+Pessimistic & Arrest rate drops to 10\% & Adjusted class labels \\
+Shifted & Crime-type distribution changes & Adjusted primary\_type frequencies \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Prediction Results on Synthetic Scenarios}
+\label{tab:risk-results}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Scenario} & \textbf{RF AUC-PR} & \textbf{GBT AUC-PR} \\
+\midrule
+Optimistic & 0.8210 & 0.8392 \\
+Pessimistic & 0.7123 & 0.7451 \\
+Shifted & 0.7689 & 0.8012 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+GBT consistently outperforms RF across all scenarios and shows greater robustness to adverse distribution shifts.
+
+\subsubsection{Scenario: Cold Start (New Crime Types)}
+
+If new crime codes are introduced (e.g., for cybercrime or new ordinances), the \texttt{StringIndexer} will encounter unseen labels. This is handled gracefully via \texttt{handleInvalid="keep"}, which maps unseen labels to a reserved \texttt{"Unknown"} category. While predictions for these records may be less accurate, the pipeline does not fail.
+
+\subsubsection{Mitigation Strategies}
+
+\begin{table}[H]
+\centering
+\caption{Risk Mitigation Strategies}
+\label{tab:mitigation}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Risk} & \textbf{Mitigation} \\
+\midrule
+Temporal drift & Retrain model annually with latest data \\
+Distribution shift & Monitor feature distributions via KS-test; trigger retraining when drift detected \\
+Cold start & \texttt{StringIndexer} \texttt{handleInvalid="keep"} ensures graceful handling \\
+False positives & Tune decision threshold based on operational cost analysis \\
+False negatives & Implement human-in-the-loop review for borderline cases \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -1,0 +1,130 @@
+\section{Modeling}
+\label{sec:modeling}
+
+\subsection{Approach}
+
+The modeling pipeline was implemented in PySpark 3 running on the Hadoop YARN cluster for distributed execution. A 1-million-record stratified sample was used for training, maintaining the original class distribution ($\sim$25\% arrest rate). The data was split 80/20 for training and testing.
+
+Two models were trained and compared:
+
+\begin{enumerate}
+    \item \textbf{Random Forest (RF)} — Classical ensemble method using bagging of decision trees.
+    \item \textbf{Gradient Boosted Trees (GBT)} — Non-classical boosting method combining weak learners sequentially.
+\end{enumerate}
+
+Logistic Regression was evaluated during pilot testing (Stage II) but excluded from the final pipeline due to poor AUC-PR (0.3813), confirming the data is not linearly separable.
+
+\subsection{Pipeline Flow}
+
+\begin{verbatim}
+Hive (crimes_optimized, 8.5M rows)
+  |
+  v
+Feature Engineering (SQL + Custom Transformers)
+  |  * Extract hour, day_of_week, month from epoch timestamp
+  |  * SinCosTransformer (cyclical encoding)
+  |  * GeoToECEFTransformer (geospatial encoding)
+  |  * StringIndexer + OneHotEncoder (categoricals)
+  |  * VectorAssembler + VarianceThresholdSelector
+  |
+  v
+Train/Test Split (80/20)
+  |
+  |--- Model 1: Random Forest
+  |     ParamGrid: numTrees [20, 50], maxDepth [5, 10]
+  |     CrossValidator: 3 folds, metric = AUC-PR
+  |
+  |--- Model 2: GBT
+  |     ParamGrid: maxDepth [3, 6], stepSize [0.05, 0.1]
+  |     CrossValidator: 3 folds, metric = AUC-PR
+  |
+  v
+Model Comparison -> evaluation.csv
+\end{verbatim}
+
+\subsection{Hyperparameter Tuning}
+
+Both models used \texttt{ParamGridBuilder} combined with 3-fold cross-validation via Spark's \texttt{CrossValidator}. \textbf{AUC-PR} was selected as the optimisation metric because the dataset is imbalanced (25\% positive class). AUC-PR focuses on positive-class performance and does not inflate scores due to true negatives, unlike AUC-ROC.
+
+\subsubsection{Random Forest}
+
+\begin{table}[H]
+\centering
+\caption{Random Forest Hyperparameter Grid}
+\label{tab:rf-grid}
+\begin{tabular}{lll}
+\toprule
+\textbf{Hyperparameter} & \textbf{Values Tested} & \textbf{Description} \\
+\midrule
+\texttt{numTrees} & [20, 50] & Number of trees in the forest \\
+\texttt{maxDepth} & [5, 10] & Maximum depth of each tree \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Grid size: $2 \times 2 = 4$ combinations. With 3-fold CV: 12 training runs.
+
+\subsubsection{Gradient Boosted Trees}
+
+\begin{table}[H]
+\centering
+\caption{GBT Hyperparameter Grid}
+\label{tab:gbt-grid}
+\begin{tabular}{lll}
+\toprule
+\textbf{Hyperparameter} & \textbf{Values Tested} & \textbf{Description} \\
+\midrule
+\texttt{maxDepth} & [3, 6] & Maximum depth of each tree \\
+\texttt{stepSize} & [0.05, 0.1] & Learning rate (shrinkage) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Grid size: $2 \times 2 = 4$ combinations. With 3-fold CV: 12 training runs.
+
+\subsection{Model Performance Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Model Comparison Results}
+\label{tab:model-comparison}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{AUC-ROC} & \textbf{AUC-PR} & \textbf{Accuracy} & \textbf{F1} \\
+\midrule
+Random Forest (tuned) & 0.8738 & 0.7968 & 0.8492 & 0.8256 \\
+\textbf{GBT (tuned)} & \textbf{0.8844} & \textbf{0.8176} & \textbf{0.8809} & \textbf{0.8710} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Selected Model: Gradient Boosted Trees}
+
+GBT was selected as the production model with the following characteristics:
+
+\begin{itemize}
+    \item \textbf{AUC-PR (0.8176)}: Highest precision-recall performance — the priority metric for imbalanced data.
+    \item \textbf{F1 (0.8710)}: Best precision-recall tradeoff.
+    \item \textbf{AUC-ROC (0.8844)}: Strong overall ranking ability.
+    \item \textbf{Optimal hyperparameters}: \texttt{maxDepth=6}, \texttt{stepSize=0.1}.
+\end{itemize}
+
+\subsection{Comparison with Stage II Pilot}
+
+\begin{table}[H]
+\centering
+\caption{Stage II Pilot vs. Stage III Final Results}
+\label{tab:pilot-comparison}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metric} & \textbf{Stage II (10\%, no tuning)} & \textbf{Stage III (1M, tuned)} & \textbf{Change} \\
+\midrule
+RF AUC-PR & 0.8352 & 0.7968 & $-0.0384$ \\
+GBT AUC-PR & 0.8418 & 0.8176 & $-0.0242$ \\
+RF F1 & 0.8742 & 0.8256 & $-0.0486$ \\
+GBT F1 & 0.8817 & 0.8710 & $-0.0107$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The slight performance decrease from Stage II is expected: the pilot model was evaluated on a smaller, less diverse 10\% sample ($\sim$846K records). The Stage III model uses a different 1M sample with more varied data, making the classification task harder. Importantly, GBT degrades less than RF when scaling to more diverse data, reinforcing its selection as the superior model.
